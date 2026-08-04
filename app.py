@@ -8,20 +8,21 @@ apihelper.API_URL = "https://tlgr.org{0}/{1}"
 
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
-SMS_TOKEN = os.getenv("SMS_TOKEN")  # Ключ от SMS.ru
+SMS_TOKEN = os.getenv("SMS_TOKEN")
 
+# БОТ ОЖИВЕТ В ЛЮБОМ СЛУЧАЕ, ДАЖЕ ЕСЛИ СМС-КЛЮЧ ЕЩЕ НЕ ВВЕДЕН
 if TOKEN and MY_TELEGRAM_ID_STR:
     MY_TELEGRAM_ID = int(MY_TELEGRAM_ID_STR)
     bot = telebot.TeleBot(TOKEN)
-    print("🚀 СМС-Бот успешно запущен на сервере Amvera...")
+    print("🚀 Безопасный СМС-Бот успешно запущен на сервере Amvera...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         if message.chat.id == MY_TELEGRAM_ID:
             instruction = (
                 "👋 **Приветствую, Босс!**\n\n"
-                "Я умею автоматически отправлять СМС-уведомления клиентам.\n\n"
-                "Пришлите мне данные строго в таком формате через косую черту:\n"
+                "Я полностью готов к работе и отправке СМС.\n\n"
+                "Пришлите мне данные строго через косую черту:\n"
                 "👉 `Имя клиента / Дата / Время / Имя мастера / Телефон мастера / ТЕЛЕФОН КЛИЕНТА`"
             )
             bot.send_message(message.chat.id, instruction, parse_mode="Markdown")
@@ -33,7 +34,7 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             if len(data) != 6:
                 error_msg = (
                     "❌ **Ошибка формата!**\n\n"
-                    "Вы ввели не все данные. Напишите строго 6 значений через косую черту:\n"
+                    "Напишите строго 6 значений через косую черту:\n"
                     "`Имя / Дата / Время / Мастер / Телефон мастера / Телефон КЛИЕНТА`"
                 )
                 bot.send_message(message.chat.id, error_msg, parse_mode="Markdown")
@@ -41,41 +42,44 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             
             client_name, date_visit, time_visit, master_name, master_phone, client_phone = data
             
-            # Автоматически очищаем номер телефона клиента от лишних символов
+            # Очищаем номер клиента
             clean_phone = "".join(filter(str.isdigit, client_phone))
             if clean_phone.startswith("8"):
                 clean_phone = "7" + clean_phone[1:]
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # Собираем текст СМС (убираем лишние эмодзи для экономии длины СМС)
+            # Текст СМС
             sms_text = (
-                f"Здравствуйте, {client_name}! Вам назначен монтаж. "
-                f"Дата приезда: {date_visit}. Время: {time_visit}. "
-                f"Ваш монтажник: {master_name}, тел: {master_phone}. "
-                f"Если изменятся планы, сообщите заранее. Ваша Азбука тепла 287-88-47"
+                f"Здравствуйте, {client_name}! Вам назначен монтаж:\n"
+                f"Дата приезда: {date_visit}\n"
+                f"Время приезда: {time_visit}\n"
+                f"Ваш монтажник: {master_name}\n"
+                f"Телефон мастера: {master_phone}\n"
+                f"С уважением, Ваша Азбука тепла ☎️ - 287 88 47"
             )
             
-            # Отправляем СМС через сервис SMS.ru
-            if SMS_TOKEN:
+            # Присылаем вам готовый текст в чат СРАЗУ (чтобы вы его видели в любом случае)
+            bot.send_message(message.chat.id, f"📝 **Шаблон сообщения собран:**\n\n{sms_text}")
+            
+            # Проверяем отправку на SMS.ru
+            if SMS_TOKEN and SMS_TOKEN != "скоро":
                 sms_url = f"https://sms.ru{SMS_TOKEN}&to={clean_phone}&msg={sms_text}&json=1"
                 sms_res = requests.get(sms_url, timeout=10).json()
                 
                 if sms_res.get("status") == "OK":
-                    confirm_text = f"✅ **Успешно!** СМС-сообщение отправлено клиенту {client_name} на номер +{clean_phone}."
+                    confirm_text = f"✅ **Успешно!** СМС отправлено клиенту {client_name} на номер +{clean_phone}."
                 else:
-                    status_text = sms_res.get("status_text", "Неизвестная ошибка")
+                    status_text = sms_res.get("status_text", "Ошибка баланса или лимитов")
                     confirm_text = f"❌ **Ошибка СМС-сервиса:** {status_text}"
             else:
-                confirm_text = f"⚠️ Ключ SMS_TOKEN не задан в Переменных Amvera. СМС не отправлено."
+                confirm_text = "⚠️ **СМС не отправлено!** В переменных Amvera не задан или не заполнен ключ `SMS_TOKEN`. Но текст выше вы можете скопировать руками."
             
-            # Присылаем отчет и текст сообщения вам в чат
-            bot.send_message(message.chat.id, f"📝 **Текст отправленного сообщения:**\n\n{sms_text}", parse_mode="Markdown")
             bot.send_message(message.chat.id, confirm_text, parse_mode="Markdown")
             
         except Exception as e:
-            bot.reply_to(message, f"🚨 Техническая ошибка при отправке: {e}")
+            bot.reply_to(message, f"🚨 Ошибка: {e}")
 
     bot.infinity_polling()
 else:
-    print("⚠️ Ошибка: Настройки для Telegram не заданы в Переменных Amvera.")
+    print("⚠️ Критическая ошибка: В Amvera отсутствуют главные переменные TG_TOKEN или MY_TELEGRAM_ID.")
