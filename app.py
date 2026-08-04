@@ -1,6 +1,8 @@
 import os
 import telebot
-import requests
+import urllib.request
+import urllib.parse
+import json
 
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
@@ -44,7 +46,7 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # УЛЬТРА-КОРОТКИЙ ТЕКСТ СМС БЕЗ СМАЙЛИКОВ ДЛЯ 100% ПРОХОДИМОСТИ СВЯЗИ
+            # Текст сообщения
             sms_text = (
                 f"Здравствуйте, {client_name}! Вам назначен монтаж. "
                 f"Дата: {date_visit}, время: {time_visit}. "
@@ -65,9 +67,8 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             )
             bot.send_message(message.chat.id, f"📝 **Шаблон сообщения собран:**\n\n{preview_message}", parse_mode="Markdown")
             
-            # Проверяем и отправляем СМС на SMS.ru
+            # Отправляем СМС через встроенную библиотеку urllib (в обход блокировок requests)
             if SMS_TOKEN and SMS_TOKEN != "скоро" and len(SMS_TOKEN) > 5:
-                sms_url = "https://sms.ru"
                 payload = {
                     "api_id": SMS_TOKEN,
                     "to": clean_phone,
@@ -75,25 +76,29 @@ if TOKEN and MY_TELEGRAM_ID_STR:
                     "json": 1
                 }
                 
+                # Кодируем параметры в безопасный интернет-формат
+                url_params = urllib.parse.urlencode(payload)
+                sms_url = f"https://sms.ru?{url_params}"
+                
                 try:
-                    response = requests.get(sms_url, params=payload, timeout=10)
-                    if response.status_code == 200:
-                        sms_res = response.json()
+                    # Выполняем прямой системный запрос к сотовому шлюзу
+                    req = urllib.request.Request(sms_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        html = response.read().decode('utf-8')
+                        sms_res = json.loads(html)
+                        
                         if sms_res.get("status") == "OK":
-                            # Вытаскиваем статус конкретного номера телефона
                             phone_status = sms_res.get("sms", {}).get(clean_phone, {})
                             if phone_status.get("status") == "OK":
                                 confirm_text = f"✅ **Успешно!** СМС отправлено клиенту {client_name} на номер +{clean_phone}."
                             else:
-                                status_text = phone_status.get("status_text", "Ошибка лимитов/длины СМС")
-                                confirm_text = f"❌ **Ошибка отправки на номер:** {status_text}"
+                                status_text = phone_status.get("status_text", "Ошибка лимитов")
+                                confirm_text = f"❌ **Ошибка отправки оператором:** {status_text}"
                         else:
-                            status_text = sms_res.get("status_text", "Ошибка баланса или лимитов")
+                            status_text = sms_res.get("status_text", "Ошибка баланса")
                             confirm_text = f"❌ **Ошибка СМС-сервиса:** {status_text}"
-                    else:
-                        confirm_text = f"❌ **Сервер SMS.ru заблокировал запрос.** (Код: {response.status_code})"
-                except Exception:
-                    confirm_text = "❌ **Не удалось связаться с SMS.ru.**"
+                except Exception as req_err:
+                    confirm_text = f"❌ **Ошибка сети шлюза:** Проверьте баланс и правильность ключа на sms.ru."
             else:
                 confirm_text = "⚠️ **СМС не отправлено!** В переменных Amvera не задан или не заполнен ключ `SMS_TOKEN`. Но текст выше вы можете скопировать руками."
             
