@@ -2,15 +2,11 @@ import os
 import telebot
 import requests
 
-# Включаем стабильное рабочее зеркало для обхода блокировок хостинга
-from telebot import apihelper
-apihelper.API_URL = "https://telegg.ru{0}/{1}"
-
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
 SMS_TOKEN = os.getenv("SMS_TOKEN")
 
-# Бот запустится в любом случае, даже если СМС-ключ еще не внесен
+# Бот запустится в любом случае, если заполнены главные переменные
 if TOKEN and MY_TELEGRAM_ID_STR:
     MY_TELEGRAM_ID = int(MY_TELEGRAM_ID_STR)
     bot = telebot.TeleBot(TOKEN)
@@ -49,7 +45,7 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # Текст сообщения строго по вашим правкам
+            # Текст сообщения
             sms_text = (
                 f"✨ Здравствуйте, {client_name}!\n\n"
                 f"Вам назначен монтаж:\n\n"
