@@ -11,16 +11,16 @@ SMS_TOKEN = os.getenv("SMS_TOKEN")
 if TOKEN and MY_TELEGRAM_ID_STR:
     MY_TELEGRAM_ID = int(MY_TELEGRAM_ID_STR)
     bot = telebot.TeleBot(TOKEN)
-    print("🚀 Лютый СМС-Бот со сквозным обходом шлюзов запущен на Amvera...")
+    print("🚀 СМС-Бот со смайликами для клиентов запущен на сервере Amvera...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         if message.chat.id == MY_TELEGRAM_ID:
             instruction = (
                 "👋 **Приветствую, Босс!**\n\n"
-                "Лютый обход блокировок хостинга активирован. Отправляю СМС напрямую через системные сокеты!\n\n"
-                "Пришлите мне данные строго через косую черту:\n"
-                "👉 `Имя клиента / Дата / Время / Имя мастера / Телефон мастера / ТЕЛЕФОН КЛИЕНТА`"
+                "Я готов собрать шаблон со смайликами и отправить СМС на телефон.\n\n"
+                "Пришлите мне данные строго через косую черту (всего 7 значений):\n"
+                "👉 `Имя / Дата / Время / Мастер / Телефон мастера / Телефон клиента / АДРЕС ОБЪЕКТА`"
             )
             bot.send_message(message.chat.id, instruction, parse_mode="Markdown")
 
@@ -28,16 +28,16 @@ if TOKEN and MY_TELEGRAM_ID_STR:
     def generate_and_send_sms(message):
         try:
             data = [item.strip() for item in message.text.split("/")]
-            if len(data) != 6:
+            if len(data) != 7:
                 error_msg = (
                     "❌ **Ошибка формата!**\n\n"
-                    "Напишите строго 6 значений через косую черту:\n"
-                    "`Имя / Дата / Время / Мастер / Телефон мастера / Телефон КЛИЕНТА`"
+                    "Вы ввели не все данные. Напишите строго 7 значений через косую черту:\n"
+                    "`Имя / Дата / Время / Мастер / Телефон мастера / Телефон клиента / АДРЕС ОБЪЕКТА`"
                 )
                 bot.send_message(message.chat.id, error_msg, parse_mode="Markdown")
                 return
             
-            client_name, date_visit, time_visit, master_name, master_phone, client_phone = data
+            client_name, date_visit, time_visit, master_name, master_phone, client_phone, object_address = data
             
             # Очищаем номер клиента от лишних знаков
             clean_phone = "".join(filter(str.isdigit, client_phone))
@@ -46,20 +46,26 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # Короткий и плотный текст СМС для идеальной проходимости у сотовых операторов
+            # ТЕКСТ СМС ДЛЯ КЛИЕНТА (Теперь полностью со всеми красивыми эмодзи!)
             sms_text = (
-                f"Здравствуйте, {client_name}! Вам назначен монтаж. "
-                f"Дата приезда: {date_visit}, время: {time_visit}. "
-                f"Ваш монтажник: {master_name}, тел: {master_phone}. "
+                f"✨ Здравствуйте, {client_name}!\n\n"
+                f"Вам назначен монтаж:\n\n"
+                f"🗓 Дата приезда: {date_visit}\n"
+                f"⏰ Время приезда: {time_visit}\n"
+                f"🏠 Адрес объекта: {object_address}\n"
+                f"👷‍♂️ Ваш монтажник: {master_name}\n"
+                f"📞 Телефон мастера: {master_phone}\n\n"
+                f"⚠️ Пожалуйста, если у Вас изменятся планы или потребуется перенести визит, сообщите нам об этом заранее.\n\n"
                 f"С уважением, Ваша Азбука тепла ☎️ - 287 88 47"
             )
             
-            # Сразу присылаем красивую превью-версию ВАМ в чат для контроля
+            # КРАСИВАЯ ПРЕВЬЮ-ВЕРСИЯ В ЧАТ ДЛЯ ВАС (С жирным шрифтом Markdown)
             preview_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
                 f"🗓 **Дата приезда:** {date_visit}\n"
                 f"⏰ **Время приезда:** {time_visit}\n"
+                f"🏠 **Адрес объекта:** {object_address}\n"
                 f"👷‍♂️ **Ваш монтажник:** {master_name}\n"
                 f"📞 **Телефон мастера:** {master_phone}\n\n"
                 f"⚠️ _Пожалуйста, если у Вас изменятся планы или потребуется перенести визит, сообщите нам об этом заранее._\n\n"
@@ -67,14 +73,11 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             )
             bot.send_message(message.chat.id, f"📝 **Шаблон сообщения собран:**\n\n{preview_message}", parse_mode="Markdown")
             
-            # ЛЮТЫЙ ОБХОД БЛОКИРОВОК: Прямое низкоуровневое HTTP-подключение без использования requests/urllib
             if SMS_TOKEN and len(SMS_TOKEN) > 5:
-                # Безопасно кодируем текст сообщения
                 encoded_msg = urllib.parse.quote(sms_text)
                 path_url = f"/sms/send?api_id={SMS_TOKEN}&to={clean_phone}&msg={encoded_msg}&json=1"
                 
                 try:
-                    # Подключаемся напрямую к IP-порту шлюза SMS.ru через системные сокеты
                     conn = http.client.HTTPSConnection("sms.ru", timeout=10)
                     conn.request("GET", path_url, headers={"User-Agent": "Mozilla/5.0"})
                     response = conn.getresponse()
@@ -86,20 +89,20 @@ if TOKEN and MY_TELEGRAM_ID_STR:
                         if sms_res.get("status") == "OK":
                             phone_status = sms_res.get("sms", {}).get(clean_phone, {})
                             if phone_status.get("status") == "OK":
-                                confirm_text = f"✅ **Успешно!** Системный обход сработал. СМС отправлено клиенту {client_name} на номер +{clean_phone}."
+                                confirm_text = f"✅ **Успешно!** Запрос принят шлюзом. СМС со смайликами отправлено клиенту {client_name} на номер +{clean_phone}."
                             else:
-                                status_text = phone_status.get("status_text", "Ошибка лимитов сотовой сети")
-                                confirm_text = f"❌ **Сотовый оператор отклонил номер:** {status_text}"
+                                status_text = phone_status.get("status_text", "Ошибка лимитов сети")
+                                confirm_text = f"❌ **Оператор отклонил СМС:** {status_text}"
                         else:
                             status_text = sms_res.get("status_text", "Ошибка баланса")
                             confirm_text = f"❌ **Ошибка СМС-сервиса:** {status_text}"
                     else:
-                        confirm_text = f"❌ **Низкоуровневый сбой шлюза.** Код ответа: {response.status}. Проверьте баланс на sms.ru."
+                        confirm_text = f"❌ **Сбой сотового шлюза.** Код: {response.status}"
                     conn.close()
                 except Exception as net_err:
-                    confirm_text = f"❌ **Защита хостинга заблокировала сокет:** {net_err}. Но текст выше собран, скопируйте его руками."
+                    confirm_text = f"❌ **Ошибка сокета:** {net_err}."
             else:
-                confirm_text = "⚠️ **СМС не отправлено!** В переменных Amvera не задан или не заполнен ключ `SMS_TOKEN`."
+                confirm_text = "⚠️ **СМС не отправлено!** В переменных Amvera не задан ключ `SMS_TOKEN`."
             
             bot.send_message(message.chat.id, confirm_text, parse_mode="Markdown")
             
