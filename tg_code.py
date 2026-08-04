@@ -1,7 +1,6 @@
 import os
 import telebot
 
-# Скрипт берет токен и ваш ID из секретных переменных сервера
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
 
