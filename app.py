@@ -1,7 +1,6 @@
 import os
 import telebot
 
-# Сервер берет токен и ваш личный ID из раздела "Переменные" в Amvera
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
 
@@ -36,15 +35,16 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             
             client_name, date_visit, time_visit, master_name, master_phone = data
             
+            # ИДЕАЛЬНО ЧИСТЫЙ ТЕКСТ ПОДПИСИ БЕЗ ЛИШНИХ СИМВОЛОВ И ПАЛОЧЕК //
             ready_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
-                f"Вам назначен монтаж: \n\n"
+                f"Вам назначен монтаж:\n\n"
                 f"🗓 **Дата приезда:** {date_visit}\n"
                 f"⏰ **Время приезда:** {time_visit}\n"
                 f"👷‍♂️ **Ваш монтажник:** {master_name}\n"
                 f"📞 **Телефон мастера:** {master_phone}\n\n"
                 f"⚠️ _Пожалуйста, если у Вас изменятся планы или потребуется перенести визит, сообщите нам об этом заранее._\n\n"
-                f"С уважением, Ваша "Азбука тепла" ☎️ 287 88 47"
+                f"С уважением, Ваша Азбука тепла ☎️ - 287 88 47"
             )
             
             bot.send_message(message.chat.id, ready_message, parse_mode="Markdown")
