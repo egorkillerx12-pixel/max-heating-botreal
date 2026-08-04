@@ -2,4 +2,4 @@ meta:
   environment: python
   toolchain: pip
 run:
-  script: main.py
+  script: app.py
