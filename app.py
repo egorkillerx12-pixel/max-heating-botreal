@@ -44,19 +44,15 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # Текст сообщения без разметки Markdown, чтобы сотовые операторы его не ломали
+            # УЛЬТРА-КОРОТКИЙ ТЕКСТ СМС БЕЗ СМАЙЛИКОВ ДЛЯ 100% ПРОХОДИМОСТИ СВЯЗИ
             sms_text = (
-                f"Здравствуйте, {client_name}!\n\n"
-                f"Вам назначен монтаж:\n\n"
-                f"Дата приезда: {date_visit}\n"
-                f"Время приезда: {time_visit}\n"
-                f"Ваш монтажник: {master_name}\n"
-                f"Телефон мастера: {master_phone}\n\n"
-                f"Пожалуйста, если у Вас изменятся планы или потребуется перенести визит, сообщите нам об этом заранее.\n\n"
-                f"С уважением, Ваша Азбука тепла ☎️ - 287 88 47"
+                f"Здравствуйте, {client_name}! Вам назначен монтаж. "
+                f"Дата: {date_visit}, время: {time_visit}. "
+                f"Мастер: {master_name}, тел: {master_phone}. "
+                f"Азбука тепла тел: 287-88-47"
             )
             
-            # Сразу присылаем красивую версию вам в чат для контроля
+            # Сразу присылаем красивую превью-версию со смайликами ВАМ в чат для контроля
             preview_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
@@ -71,7 +67,6 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             
             # Проверяем и отправляем СМС на SMS.ru
             if SMS_TOKEN and SMS_TOKEN != "скоро" and len(SMS_TOKEN) > 5:
-                # Передаем параметры через словарь params для автоматического и безопасного кодирования текста
                 sms_url = "https://sms.ru"
                 payload = {
                     "api_id": SMS_TOKEN,
@@ -80,13 +75,25 @@ if TOKEN and MY_TELEGRAM_ID_STR:
                     "json": 1
                 }
                 
-                sms_res = requests.get(sms_url, params=payload, timeout=10).json()
-                
-                if sms_res.get("status") == "OK":
-                    confirm_text = f"✅ **Успешно!** СМС отправлено клиенту {client_name} на номер +{clean_phone}."
-                else:
-                    status_text = sms_res.get("status_text", "Ошибка баланса или лимитов СМС-шлюза")
-                    confirm_text = f"❌ **Ошибка СМС-сервиса:** {status_text}"
+                try:
+                    response = requests.get(sms_url, params=payload, timeout=10)
+                    if response.status_code == 200:
+                        sms_res = response.json()
+                        if sms_res.get("status") == "OK":
+                            # Вытаскиваем статус конкретного номера телефона
+                            phone_status = sms_res.get("sms", {}).get(clean_phone, {})
+                            if phone_status.get("status") == "OK":
+                                confirm_text = f"✅ **Успешно!** СМС отправлено клиенту {client_name} на номер +{clean_phone}."
+                            else:
+                                status_text = phone_status.get("status_text", "Ошибка лимитов/длины СМС")
+                                confirm_text = f"❌ **Ошибка отправки на номер:** {status_text}"
+                        else:
+                            status_text = sms_res.get("status_text", "Ошибка баланса или лимитов")
+                            confirm_text = f"❌ **Ошибка СМС-сервиса:** {status_text}"
+                    else:
+                        confirm_text = f"❌ **Сервер SMS.ru заблокировал запрос.** (Код: {response.status_code})"
+                except Exception:
+                    confirm_text = "❌ **Не удалось связаться с SMS.ru.**"
             else:
                 confirm_text = "⚠️ **СМС не отправлено!** В переменных Amvera не задан или не заполнен ключ `SMS_TOKEN`. Но текст выше вы можете скопировать руками."
             
