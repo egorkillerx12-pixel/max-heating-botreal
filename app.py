@@ -2,15 +2,15 @@ import os
 import telebot
 import requests
 
-# Включаем официальное российское зеркало для Telegram
+# Включаем стабильное рабочее зеркало для обхода блокировок хостинга
 from telebot import apihelper
-apihelper.API_URL = "https://tlgr.org{0}/{1}"
+apihelper.API_URL = "https://telegg.ru{0}/{1}"
 
 TOKEN = os.getenv("TG_TOKEN")
 MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
 SMS_TOKEN = os.getenv("SMS_TOKEN")
 
-# БОТ ОЖИВЕТ В ЛЮБОМ СЛУЧАЕ, ДАЖЕ ЕСЛИ СМС-КЛЮЧ ЕЩЕ НЕ ВВЕДЕН
+# Бот запустится в любом случае, даже если СМС-ключ еще не внесен
 if TOKEN and MY_TELEGRAM_ID_STR:
     MY_TELEGRAM_ID = int(MY_TELEGRAM_ID_STR)
     bot = telebot.TeleBot(TOKEN)
@@ -42,28 +42,30 @@ if TOKEN and MY_TELEGRAM_ID_STR:
             
             client_name, date_visit, time_visit, master_name, master_phone, client_phone = data
             
-            # Очищаем номер клиента
+            # Очищаем номер клиента от лишних символов
             clean_phone = "".join(filter(str.isdigit, client_phone))
             if clean_phone.startswith("8"):
                 clean_phone = "7" + clean_phone[1:]
             elif clean_phone.startswith("9"):
                 clean_phone = "7" + clean_phone
                 
-            # Текст СМС
+            # Текст сообщения строго по вашим правкам
             sms_text = (
-                f"Здравствуйте, {client_name}! Вам назначен монтаж:\n"
-                f"Дата приезда: {date_visit}\n"
-                f"Время приезда: {time_visit}\n"
-                f"Ваш монтажник: {master_name}\n"
-                f"Телефон мастера: {master_phone}\n"
+                f"✨ Здравствуйте, {client_name}!\n\n"
+                f"Вам назначен монтаж:\n\n"
+                f"🗓 Дата приезда: {date_visit}\n"
+                f"⏰ Время приезда: {time_visit}\n"
+                f"👷‍♂️ Ваш монтажник: {master_name}\n"
+                f"📞 Телефон мастера: {master_phone}\n\n"
+                f"⚠️ Пожалуйста, если у Вас изменятся планы или потребуется перенести визит, сообщите нам об этом заранее.\n\n"
                 f"С уважением, Ваша Азбука тепла ☎️ - 287 88 47"
             )
             
-            # Присылаем вам готовый текст в чат СРАЗУ (чтобы вы его видели в любом случае)
+            # Присылаем вам готовый текст в чат СРАЗУ
             bot.send_message(message.chat.id, f"📝 **Шаблон сообщения собран:**\n\n{sms_text}")
             
-            # Проверяем отправку на SMS.ru
-            if SMS_TOKEN and SMS_TOKEN != "скоро":
+            # Проверяем и отправляем СМС на SMS.ru
+            if SMS_TOKEN and SMS_TOKEN != "скоро" and len(SMS_TOKEN) > 5:
                 sms_url = f"https://sms.ru{SMS_TOKEN}&to={clean_phone}&msg={sms_text}&json=1"
                 sms_res = requests.get(sms_url, timeout=10).json()
                 
