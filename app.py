@@ -16,38 +16,25 @@ for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
 
 if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print(f"🚀 Бот Азбука Тепла со скрытой кнопкой шаблона запущен...")
+    print(f"🚀 Бот Азбука Тепла со всеми ссылками запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         # Создаем интерактивные кнопки под сообщением
         markup = types.InlineKeyboardMarkup(row_width=1)
         
-        # 1. Ссылка на официальный сайт
-        btn_site = types.InlineKeyboardButton(text="🌐 Наш сайт Азбукатепла.рф", url="http://Азбукатепла.рф")
-        
-        # 2. Ссылка на Telegram-канал
+        # Точные ссылки строго из вашего списка
         btn_tg = types.InlineKeyboardButton(text="📢 Наш Telegram-канал", url="https://t.me")
-        
-        # 3. Ссылка на группу ВКонтакте
         btn_vk = types.InlineKeyboardButton(text="👥 Наша группа ВКонтакте", url="https://vk.ru")
-        
-        # 4. Ссылка на Instagram
         btn_inst = types.InlineKeyboardButton(text="📸 Наш Instagram", url="https://instagram.com")
-        
-        # 5. Ссылка на группу в мессенджере MAX
         btn_max = types.InlineKeyboardButton(text="💬 Наша группа в мессенджере MAX", url="https://max.ru")
-        
-        # 6. Ссылка на RuTube
         btn_rutube = types.InlineKeyboardButton(text="📺 Наш канал на RuTube", url="https://rutube.ru")
+        btn_youtube = types.InlineKeyboardButton(text="🎥 Наш канал на YouTube", url="https://youtube.com/@azbukatepla?si=u1xNLH-neKBGmy4q")
         
-        # 7. Ссылка на YouTube
-        btn_youtube = types.InlineKeyboardButton(text="🎥 Наш канал на YouTube", url="https://youtube.com")
+        # Добавляем общие кнопки, которые видны абсолютно ВСЕМ пользователям
+        markup.add(btn_tg, btn_vk, btn_inst, btn_max, btn_rutube, btn_youtube)
         
-        # Сначала добавляем общие кнопки, которые видят ВСЕ
-        markup.add(btn_site, btn_tg, btn_vk, btn_inst, btn_max, btn_rutube, btn_youtube)
-        
-        # УМНАЯ ПРОВЕРКА: Если пишет админ (вы или родители) — добавляем секретную 8-ю кнопку
+        # СЕКРЕТНЫЙ РЕЖИМ: Если боту пишет админ (вы или родители) — добавляем скрытую 7-ю кнопку
         if message.chat.id in ALLOWED_IDS:
             btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
             markup.add(btn_template)
@@ -58,10 +45,10 @@ if TOKEN and ALLOWED_IDS:
         )
         bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
-    # Обработка нажатия на секретную кнопку "Создать шаблон"
+    # Обработка нажатия на скрытую кнопку "Создать шаблон"
     @bot.callback_query_handler(func=lambda call: call.data == "start_template")
     def callback_template(call):
-        # Дополнительная проверка безопасности при нажатии кнопки
+        # Двойная проверка безопасности ID при попытке клика
         if call.message.chat.id in ALLOWED_IDS:
             instruction = (
                 "📝 **Отлично, Босс! Начинаем сборку шаблона.**\n\n"
@@ -76,7 +63,7 @@ if TOKEN and ALLOWED_IDS:
             bot.send_message(call.message.chat.id, instruction, parse_mode="Markdown")
             bot.answer_callback_query(call.id)
         else:
-            bot.answer_callback_query(call.id, text="❌ У вас нет прав доступа!", show_alert=True)
+            bot.answer_callback_query(call.id, text="❌ У вас нет прав доступа к этой функции!", show_alert=True)
 
     # Прием текстовых данных по строкам (работает только для админов)
     @bot.message_handler(func=lambda message: message.chat.id in ALLOWED_IDS)
@@ -113,7 +100,7 @@ if TOKEN and ALLOWED_IDS:
         except Exception as e:
             bot.reply_to(message, f"🚨 Ошибка при сборке текста: {e}")
 
-    # Полное игнорирование или заглушка для текстовых сообщений от посторонних людей
+    # Полное игнорирование текстовых сообщений от посторонних людей
     @bot.message_handler(func=lambda message: message.chat.id not in ALLOWED_IDS)
     def ignore_strangers(message):
         bot.send_message(message.chat.id, "❌ У вас нет прав для отправки команд этому боту.")
