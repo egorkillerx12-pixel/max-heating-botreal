@@ -1,5 +1,6 @@
 import os
 import telebot
+from telebot import types
 
 TOKEN = os.getenv("TG_TOKEN")
 
@@ -15,16 +16,35 @@ for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
 
 if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print(f"🚀 Доступ открыт для {len(ALLOWED_IDS)} пользователей. Бот запущен...")
+    print(f"🚀 Бот компании Азбука Тепла с кнопками доступа запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        # Бот отвечает только тем, чей ID есть в списке разрешенных
-        if message.chat.id in ALLOWED_IDS:
+        # Создаем интерактивные кнопки под сообщением
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        
+        # Кнопка-ссылка на сайт (работает для всех)
+        btn_site = types.InlineKeyboardButton(text="🌐 Перейти на сайт Азбука тепла.рф", url="https://азбукатепла.рф")
+        
+        # Кнопка для создания шаблона (запрос уйдет в систему)
+        btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
+        
+        markup.add(btn_site, btn_template)
+
+        welcome_text = (
+            "✨ **Добро пожаловать в официальный бот компании «Азбука тепла»!** ✨\n\n"
+            "Выберите интересующее вас действие с помощью кнопок ниже 👇"
+        )
+        bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode="Markdown")
+
+    # Обработка нажатия на кнопку "Создать шаблон"
+    @bot.callback_query_handler(func=lambda call: call.data == "start_template")
+    def callback_template(call):
+        # Проверяем, есть ли у пользователя доступ
+        if call.message.chat.id in ALLOWED_IDS:
             instruction = (
-                "👋 **Приветствую!**\n\n"
-                "Я моментально соберу красивое сообщение для клиента.\n\n"
-                "Пришлите мне данные, написав каждое значение **с новой строки** (всего 6 строк):\n\n"
+                "📝 **Отлично, Босс! Начинаем сборку шаблона.**\n\n"
+                "Пришлите мне данные клиента, написав каждое значение **с новой строки** (всего 6 строк):\n\n"
                 "👤 Имя клиента\n"
                 "🗓 Дата\n"
                 "⏰ Время\n"
@@ -32,8 +52,14 @@ if TOKEN and ALLOWED_IDS:
                 "📞 Телефон мастера\n"
                 "🏠 Адрес объекта"
             )
-            bot.send_message(message.chat.id, instruction, parse_mode="Markdown")
+            bot.send_message(call.message.chat.id, instruction, parse_mode="Markdown")
+            # Закрываем часы загрузки на кнопке у пользователя
+            bot.answer_callback_query(call.id)
+        else:
+            # Если нажал чужой человек — выдаем ошибку во всплывающем окне
+            bot.answer_callback_query(call.id, text="❌ У вас нет прав доступа к этой функции!", show_alert=True)
 
+    # Прием текстовых данных (работает только для админов)
     @bot.message_handler(func=lambda message: message.chat.id in ALLOWED_IDS)
     def generate_template(message):
         try:
@@ -51,7 +77,7 @@ if TOKEN and ALLOWED_IDS:
             
             client_name, date_visit, time_visit, master_name, master_phone, object_address = data
             
-            # Красивый шаблон компании Азбука Тепла
+            # Финальный красивый шаблон Азбуки Тепла
             ready_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
@@ -68,6 +94,11 @@ if TOKEN and ALLOWED_IDS:
             bot.send_message(message.chat.id, "⬆️ **Готово!** Зажмите сообщение выше, нажмите **Копировать** и бесплатно отправьте клиенту в WhatsApp или СМС.")
         except Exception as e:
             bot.reply_to(message, f"🚨 Ошибка при сборке текста: {e}")
+
+    # Игнорируем любые текстовые сообщения от чужих людей
+    @bot.message_handler(func=lambda message: message.chat.id not in ALLOWED_IDS)
+    def ignore_strangers(message):
+        bot.send_message(message.chat.id, "❌ У вас нет прав для отправки команд этому боту.")
 
     bot.infinity_polling()
 else:
