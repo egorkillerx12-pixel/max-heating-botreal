@@ -16,37 +16,52 @@ for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
 
 if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print(f"🚀 Бот Азбука Тепла с точными ссылками Telegram и MAX запущен...")
+    print(f"🚀 Бот Азбука Тепла со скрытой кнопкой шаблона запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         # Создаем интерактивные кнопки под сообщением
         markup = types.InlineKeyboardMarkup(row_width=1)
         
-        # 1. Точная ссылка на ваш Telegram-канал
-        btn_tg_channel = types.InlineKeyboardButton(text="📢 Наш Telegram-канал", url="https://t.me/teplo154")
+        # 1. Ссылка на официальный сайт
+        btn_site = types.InlineKeyboardButton(text="🌐 Наш сайт Азбукатепла.рф", url="http://Азбукатепла.рф")
         
-        # 2. Точная ссылка на вашу группу в мессенджере MAX
-        btn_max_channel = types.InlineKeyboardButton(text="💬 Наша группа в мессенджере MAX", url="https://max.ru/join/IQ3bh8OCPEVpw1Mjf96v9nKBibICea4BAKnuTUsTUT0")
+        # 2. Ссылка на Telegram-канал
+        btn_tg = types.InlineKeyboardButton(text="📢 Наш Telegram-канал", url="https://t.me")
         
-        # 3. Ссылка на ваш официальный сайт
-        btn_site = types.InlineKeyboardButton(text="🌐 Перейти на сайт Азбука тепла.рф", url="https://азбукатепла.рф")
+        # 3. Ссылка на группу ВКонтакте
+        btn_vk = types.InlineKeyboardButton(text="👥 Наша группа ВКонтакте", url="https://vk.ru")
         
-        # 4. Секретная кнопка для создания шаблона монтажа (работает только для вас и родителей)
-        btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
+        # 4. Ссылка на Instagram
+        btn_inst = types.InlineKeyboardButton(text="📸 Наш Instagram", url="https://instagram.com")
         
-        markup.add(btn_tg_channel, btn_max_channel, btn_site, btn_template)
+        # 5. Ссылка на группу в мессенджере MAX
+        btn_max = types.InlineKeyboardButton(text="💬 Наша группа в мессенджере MAX", url="https://max.ru")
+        
+        # 6. Ссылка на RuTube
+        btn_rutube = types.InlineKeyboardButton(text="📺 Наш канал на RuTube", url="https://rutube.ru")
+        
+        # 7. Ссылка на YouTube
+        btn_youtube = types.InlineKeyboardButton(text="🎥 Наш канал на YouTube", url="https://youtube.com")
+        
+        # Сначала добавляем общие кнопки, которые видят ВСЕ
+        markup.add(btn_site, btn_tg, btn_vk, btn_inst, btn_max, btn_rutube, btn_youtube)
+        
+        # УМНАЯ ПРОВЕРКА: Если пишет админ (вы или родители) — добавляем секретную 8-ю кнопку
+        if message.chat.id in ALLOWED_IDS:
+            btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
+            markup.add(btn_template)
 
         welcome_text = (
             "✨ **Добро пожаловать в официальный бот компании «Азбука тепла»!** ✨\n\n"
-            "Используйте кнопки ниже, чтобы перейти в наши соцсети, на сайт или запустить рабочие функции 👇"
+            "Наши работы и социальные сети доступны по кнопкам ниже. Подписывайтесь! 👇"
         )
         bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
-    # Обработка нажатия на кнопку "Создать шаблон"
+    # Обработка нажатия на секретную кнопку "Создать шаблон"
     @bot.callback_query_handler(func=lambda call: call.data == "start_template")
     def callback_template(call):
-        # Проверяем, есть ли у пользователя доступ
+        # Дополнительная проверка безопасности при нажатии кнопки
         if call.message.chat.id in ALLOWED_IDS:
             instruction = (
                 "📝 **Отлично, Босс! Начинаем сборку шаблона.**\n\n"
@@ -61,10 +76,9 @@ if TOKEN and ALLOWED_IDS:
             bot.send_message(call.message.chat.id, instruction, parse_mode="Markdown")
             bot.answer_callback_query(call.id)
         else:
-            # Если нажал посторонний человек — выдаем ошибку во всплывающем окне
-            bot.answer_callback_query(call.id, text="❌ У вас нет прав доступа к этой функции!", show_alert=True)
+            bot.answer_callback_query(call.id, text="❌ У вас нет прав доступа!", show_alert=True)
 
-    # Прием текстовых данных (работает только для админов)
+    # Прием текстовых данных по строкам (работает только для админов)
     @bot.message_handler(func=lambda message: message.chat.id in ALLOWED_IDS)
     def generate_template(message):
         try:
@@ -82,7 +96,6 @@ if TOKEN and ALLOWED_IDS:
             
             client_name, date_visit, time_visit, master_name, master_phone, object_address = data
             
-            # Финальный красивый шаблон Азбуки Тепла для отправки клиенту
             ready_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
@@ -100,7 +113,7 @@ if TOKEN and ALLOWED_IDS:
         except Exception as e:
             bot.reply_to(message, f"🚨 Ошибка при сборке текста: {e}")
 
-    # Полное игнорирование текстовых сообщений от посторонних людей
+    # Полное игнорирование или заглушка для текстовых сообщений от посторонних людей
     @bot.message_handler(func=lambda message: message.chat.id not in ALLOWED_IDS)
     def ignore_strangers(message):
         bot.send_message(message.chat.id, "❌ У вас нет прав для отправки команд этому боту.")
