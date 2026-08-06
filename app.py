@@ -16,26 +16,27 @@ for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
 
 if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print(f"🚀 Бот Азбука Тепла со всеми кнопками и сайтом успешно запущен...")
+    print(f"🚀 Бот Азбука Тепла со всеми 8 кнопками и скрытым режимом запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         # Создаем интерактивные кнопки под сообщением
         markup = types.InlineKeyboardMarkup(row_width=1)
         
-        # Строго ваши 6 ссылок по номерам + 7-я кнопка на сайт
+        # Строго ваши 6 ссылок по номерам + 7-я 2ГИС + 8-я сайт
         btn_youtube = types.InlineKeyboardButton(text="🎥 Наш канал на YouTube", url="https://youtube.com/@azbukatepla?si=u1xNLH-neKBGmy4q")
         btn_rutube = types.InlineKeyboardButton(text="📺 Наш канал на RuTube", url="https://rutube.ru/channel/77676698")
         btn_max = types.InlineKeyboardButton(text="💬 Наша группа в мессенджере MAX", url="https://max.ru/join/IQ3bh8OCPEVpw1Mjf96v9nKBibICea4BAKnuTUsTUT0")
         btn_inst = types.InlineKeyboardButton(text="📸 Наш Instagram", url="https://instagram.com/azbukatepla.rf?igshid=Yzg5MTU1MDY")
         btn_vk = types.InlineKeyboardButton(text="👥 Наша группа ВКонтакте", url="https://vk.ru/azbukatepla154")
         btn_tg = types.InlineKeyboardButton(text="📢 Наш Telegram-канал", url="https://t.me/teplo154")
+        btn_2gis = types.InlineKeyboardButton(text="🗺 Наша компания на карте 2ГИС", url="https://2gis.ru/novosibirsk/geo/70000001030915053")
         btn_site = types.InlineKeyboardButton(text="🌐 Наш сайт Азбукатепла.рф", url="http://Азбукатепла.рф")
         
-        # Добавляем 7 общих кнопок для всех пользователей
-        markup.add(btn_youtube, btn_rutube, btn_max, btn_inst, btn_vk, btn_tg, btn_site)
+        # Добавляем 8 общих кнопок для всех пользователей
+        markup.add(btn_youtube, btn_rutube, btn_max, btn_inst, btn_vk, btn_tg, btn_2gis, btn_site)
         
-        # СКРЫТЫЙ РЕЖИМ ДЛЯ АДМИНОВ: добавляем 8-ю кнопку только вам и родителям
+        # СКРЫТЫЙ РЕЖИМ ДЛЯ АДМИНОВ: добавляем 9-ю кнопку только вам и родителям
         if message.chat.id in ALLOWED_IDS:
             btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
             markup.add(btn_template)
