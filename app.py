@@ -16,24 +16,30 @@ for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
 
 if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print(f"🚀 Бот компании Азбука Тепла с кнопками доступа запущен...")
+    print(f"🚀 Бот Азбука Тепла с кнопками Telegram и MAX запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         # Создаем интерактивные кнопки под сообщением
         markup = types.InlineKeyboardMarkup(row_width=1)
         
-        # Кнопка-ссылка на сайт (работает для всех)
+        # 1. Кнопка-ссылка на Telegram-канал
+        btn_tg_channel = types.InlineKeyboardButton(text="📢 Наш Telegram-канал", url="https://t.me")
+        
+        # 2. Кнопка-ссылка на канал в мессенджере MAX (Официальный веб-переход)
+        btn_max_channel = types.InlineKeyboardButton(text="💬 Наша группа в мессенджере MAX", url="https://max.ru")
+        
+        # 3. Кнопка-ссылка на сайт
         btn_site = types.InlineKeyboardButton(text="🌐 Перейти на сайт Азбука тепла.рф", url="https://азбукатепла.рф")
         
-        # Кнопка для создания шаблона (запрос уйдет в систему)
+        # 4. Секретная кнопка для создания шаблона (только для админов)
         btn_template = types.InlineKeyboardButton(text="🛠 Создать шаблон монтажа", callback_data="start_template")
         
-        markup.add(btn_site, btn_template)
+        markup.add(btn_tg_channel, btn_max_channel, btn_site, btn_template)
 
         welcome_text = (
             "✨ **Добро пожаловать в официальный бот компании «Азбука тепла»!** ✨\n\n"
-            "Выберите интересующее вас действие с помощью кнопок ниже 👇"
+            "Используйте кнопки ниже, чтобы перейти в наши соцсети, на сайт или запустить рабочие функции 👇"
         )
         bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode="Markdown")
 
@@ -53,7 +59,6 @@ if TOKEN and ALLOWED_IDS:
                 "🏠 Адрес объекта"
             )
             bot.send_message(call.message.chat.id, instruction, parse_mode="Markdown")
-            # Закрываем часы загрузки на кнопке у пользователя
             bot.answer_callback_query(call.id)
         else:
             # Если нажал чужой человек — выдаем ошибку во всплывающем окне
@@ -70,14 +75,13 @@ if TOKEN and ALLOWED_IDS:
                 error_msg = (
                     "❌ **Ошибка формата!**\n\n"
                     "Вы ввели не все данные. Напишите строго 6 значений, каждое **с новой строки**:\n"
-                    "1. Имя\n2. Дата\n3. Время\n4. Мастер\n5. Телефон мастера\n6. Адрес объекта"
+                    "1. Имя\n2. Дата\n3. Время\n4. Maстер\n5. Телефон мастера\n6. Адрес объекта"
                 )
                 bot.send_message(message.chat.id, error_msg, parse_mode="Markdown")
                 return
             
             client_name, date_visit, time_visit, master_name, master_phone, object_address = data
             
-            # Финальный красивый шаблон Азбуки Тепла
             ready_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
