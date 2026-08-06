@@ -2,18 +2,27 @@ import os
 import telebot
 
 TOKEN = os.getenv("TG_TOKEN")
-MY_TELEGRAM_ID_STR = os.getenv("MY_TELEGRAM_ID")
 
-if TOKEN and MY_TELEGRAM_ID_STR:
-    MY_TELEGRAM_ID = int(MY_TELEGRAM_ID_STR)
+# Собираем список из 3 разрешенных ID из настроек Amvera
+ALLOWED_IDS = []
+for key in ["MY_TELEGRAM_ID", "MY_TELEGRAM_ID_2", "MY_TELEGRAM_ID_3"]:
+    id_str = os.getenv(key)
+    if id_str:
+        try:
+            ALLOWED_IDS.append(int(id_str))
+        except ValueError:
+            pass
+
+if TOKEN and ALLOWED_IDS:
     bot = telebot.TeleBot(TOKEN)
-    print("🚀 Бот-генератор шаблонов Азбука Тепла успешно запущен...")
+    print(f"🚀 Доступ открыт для {len(ALLOWED_IDS)} пользователей. Бот запущен...")
 
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        if message.chat.id == MY_TELEGRAM_ID:
+        # Бот отвечает только тем, чей ID есть в списке разрешенных
+        if message.chat.id in ALLOWED_IDS:
             instruction = (
-                "👋 **Приветствую, Босс!**\n\n"
+                "👋 **Приветствую!**\n\n"
                 "Я моментально соберу красивое сообщение для клиента.\n\n"
                 "Пришлите мне данные, написав каждое значение **с новой строки** (всего 6 строк):\n\n"
                 "👤 Имя клиента\n"
@@ -21,28 +30,28 @@ if TOKEN and MY_TELEGRAM_ID_STR:
                 "⏰ Время\n"
                 "👷‍♂️ Имя мастера\n"
                 "📞 Телефон мастера\n"
-                "🏠 АДРЕС ОБЪЕКТА"
+                "🏠 Адрес объекта"
             )
             bot.send_message(message.chat.id, instruction, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.chat.id == MY_TELEGRAM_ID)
+    @bot.message_handler(func=lambda message: message.chat.id in ALLOWED_IDS)
     def generate_template(message):
         try:
-            # Разделяем текст по строкам (по нажатию Enter)
+            # Разделяем текст по строкам
             data = [line.strip() for line in message.text.split('\n') if line.strip()]
             
             if len(data) != 6:
                 error_msg = (
                     "❌ **Ошибка формата!**\n\n"
                     "Вы ввели не все данные. Напишите строго 6 значений, каждое **с новой строки**:\n"
-                    "1. Имя\n2. Дата\n3. Время\n4. Мастер\n5. Телефон мастера\n6. АДРЕС ОБЪЕКТА"
+                    "1. Имя\n2. Дата\n3. Время\n4. Мастер\n5. Телефон мастера\n6. Адрес объекта"
                 )
                 bot.send_message(message.chat.id, error_msg, parse_mode="Markdown")
                 return
             
             client_name, date_visit, time_visit, master_name, master_phone, object_address = data
             
-            # ФИНАЛЬНЫЙ КРАСИВЫЙ ШАБЛОН КОМПАНИИ С АДРЕСОМ И СМАЙЛИКАМИ
+            # Красивый шаблон компании Азбука Тепла
             ready_message = (
                 f"✨ **Здравствуйте, {client_name}!**\n\n"
                 f"Вам назначен монтаж:\n\n"
@@ -62,4 +71,4 @@ if TOKEN and MY_TELEGRAM_ID_STR:
 
     bot.infinity_polling()
 else:
-    print("⚠️ Критическая ошибка: В Amvera отсутствуют переменные TG_TOKEN или MY_TELEGRAM_ID.")
+    print("⚠️ Критическая ошибка: В Amvera не настроен TG_TOKEN или список ALLOWED_IDS пуст.")
